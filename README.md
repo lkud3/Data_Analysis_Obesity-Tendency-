@@ -14,6 +14,6 @@ These two questions perfectly address the problem of overweight the humanity is 
 In order to find the answers to these questions, the whole data was analyzed in order to spot the dependencies, as well as the hypothesis testing was performed to exclude the possible randomly matching correlations.
 
 ## Outline
-This research work was written in R language to build all the statistical metricks and visualize the results. In the end, the .html document was knitted to make the final report. Both files are included, as well as the initial dataset.
+This research work was written in R language to build all the statistical metricks and visualize the results. In the end, the .html document was knitted to make the final report. Both files are included, as well as the initial dataset. The data source can be found [here](https://www.kaggle.com/datasets/aravindpcoder/obesity-or-cvd-risk-classifyregressorcluster).
 
 The report contains a general overview of the dataset and an analysis of every variable separately. Afterwards, the associative data analysis is performed to investigate any correlations between different variables and to find some tendencies. Then, inference was performed to check the initial research questions and either reject or accept the null hypothesis regarding each of them. Finally, the results are summed up, and the potential limitations of the research and dataset are outlined.
