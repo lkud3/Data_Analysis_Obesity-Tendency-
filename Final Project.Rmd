@@ -1,0 +1,490 @@
+---
+title: "Obesity_Tendency"
+author: "Saltykov Daniil"
+date: "2024-03-01"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+<!-- Setup -->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<!-- Load packages -->
+
+```{r load-packages, include=FALSE}
+library(ggplot2)
+library(knitr)
+library(tidyverse)
+library(statsr)
+library(openintro)
+```
+
+
+<!-- Load data -->
+
+```{r load-data, include = FALSE}
+data <- read.csv("ObesityDataSet.csv")
+```
+
+## Part 1: Introduction
+
+* * *
+To begin with, the aim of this project is to perform a comprehensive and detailed analysis on a data frame and its components, answering the research questions that were stated prior the investigation by performing the hypothesis testing. 
+
+In this particular case, we will analyze the data of people who suffered from different
+obesity levels and investigate if multiple personal characteristics and physical conditions do
+have an impact on probability of getting the corresponding disease. 
+
+**This research will answer the following questions:**
+
+1. **Do men are more likely to suffer from being overweight than women?**
+2. **Can the age make any assumption about an obesity level?**
+
+These two questions perfectly address the problem of overweight the humanity is facing recently. Finding the correlations between these variables, we can find the way to predict the appearance of a disease on early stages and prevent its development. 
+
+In order to find the answers to these questions, the whole data will be analyzed in order to spot the dependencies, as well as the hypothesis testing will take place to exclude the possible randomly matching correlations.
+
+* * *
+
+## Part 2: Data
+
+* * *
+The data consist of the estimation of obesity levels based on a BMI score in people from the countries of **Mexico, Peru and Colombia**, with ages between **14 and 61** and diverse eating habits and physical
+condition. Data was collected via online anonymous survey, resulting into data set with 17 attributes
+and 2111 records.
+
+The attributes considering the **eating habits** are: 
+
+- Frequent consumption of high caloric food (`FAVC`) 
+- Frequency of consumption of vegetables (`FCVC`)
+- Number of main meals (`NCP`)
+- Consumption of food between meals (`CAEC`) 
+- Consumption of water daily (`CH20`)
+- Consumption of alcohol (`CALC`). 
+
+The attributes considering the **physical condition** are:
+
+* Calories consumption monitoring (`SCC`)
+* Physical activity frequency (`FAF`) 
+* Time using technology devices (`TUE`) 
+* Transportation used (`MTRANS`)
+* Smokers or not (`SMOKE`)
+* `Gender` 
+* `Age` (in years)
+* `Height` (in meters)
+* `Weight` (in kilograms).
+
+The **obesity level** is calculated by BMI score and represented as a level of a disease:
+
+* Insufficient Weight
+* Normal Weight
+* Overweight Level I
+* Overweight Level II
+* Obesity Type I
+* Obesity Type II
+* Obesity Type III.
+
+There are both categorical and numerical data presented.
+Categorical data was presented as binary type (Gender and such metrics as consumption of
+high caloric food or family history of diabetes with simple yes/no answers) and as ordinal
+(Consumption of food between meals: No, Sometimes, Frequently, Always).
+Numerical data was discrete (for example Number of Main Meals) and continuous (Height
+and Weight).
+
+The data source can be found [here](https://www.kaggle.com/datasets/aravindpcoder/obesity-or-cvd-risk-classifyregressorcluster).
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+* * *
+### General data analysis 
+
+To begin with, let's lake a general look on the data.
+
+```{r general-look}
+dim(data)
+```
+
+As was mentioned earlier, the data consists of 17 different variables and contains 2111 records. We can also see the brief example of how the data looks like by using function `head()`.
+
+```{r, echo = FALSE}
+kable(head(data))
+```
+
+* * *
+In order to have better understanding of each variable, we will check the type of data on each column and the summary. 
+
+```{r data-summary, echo = FALSE}
+str(data)
+summary(data)
+```
+
+We can see that in some numerical discrete variables have float median. It is because some of the data is spoiled and have phantom decimal value fluxing the data. In order to clean the data, I have rounded all the numerical discrete values to the nearest integer. The `Height` value was rounded to 2 decimal points due to the origin of the data.
+
+
+```{r data-rounding, echo = FALSE}
+data$Age <- round(data$Age)
+data$Height <- round(data$Height, digits = 2)
+data$Weight <- round(data$Weight)
+data$FCVC <- round(data$FCVC)
+data$NCP <- round(data$NCP)
+data$CH2O <- round(data$CH2O)
+data$FAF <- round(data$FAF)
+data$TUE <- round(data$TUE)
+
+summary(data)
+```
+
+Next, I have double checked the data for any N/A values to be sure the data is ready for analysis.
+
+```{r NA-check}
+sum(is.na(data))
+```
+
+* * * 
+### Individual data analysis 
+
+When the data is ready, we can proceed with analyzing the variables. To begin with, we can check the distribution of **gender** variable. Ideally, to exclude any bias and make the data valuable, it should be equal amount of male and female across the participants. 
+
+```{r Gender, echo=FALSE}
+table(data$Gender)
+ggplot(data, aes(x = Gender)) + geom_bar(fill = "lightblue") 
+
+```
+
+Indeed, the gender of participants is evenly distributed.
+
+* * * 
+
+Now, let's take a look on the **age** of participants. 
+
+```{r Age-analysis, echo = FALSE, message=FALSE, warning=FALSE}
+ggplot(data, aes(x = Age)) + geom_histogram(fill = "lightblue") + xlab("Age of the participants") + geom_vline(xintercept = mean(data$Age), color = "red", linetype = "longdash", size = 1) +
+geom_vline(xintercept = median(data$Age), color = "blue", size = 1)
+```
+
+On the presented histogram we can see the distribution of the age across the sample. The red line shows the mean value which is 24.316, and the blue line shows the median value which is 23. It is unimodal with obvious right skewness and some outliers on the right end. In order to see the outliers more clearly we will build the box plot.
+
+```{r age-box, echo=FALSE}
+ggplot(data, aes(x = Age)) + geom_boxplot(fill = "lightblue")
+
+```
+
+From this graph, we can state that there are significant outliers that start to appear after the max value of 35 years old.
+
+* * * 
+
+Additionally, it is better to analyse the distribution of **Height and Weight**.
+
+```{r weight-height, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(data, aes(x = Weight)) + geom_histogram(fill = "lightblue") + xlab("Weight of the participants")
+
+ggplot(data, aes(x = Height)) + geom_histogram(fill = "lightblue") + xlab("Height of the participants")
+```
+
+Thus, the Height is more bimodal and symmetric, while the weight is multimodal with small right skewness. 
+
+The interquartile ranges with the borders will give us more precise evaluation of the most common results.
+
+```{r min-max}
+min(data$Height)
+max(data$Height)
+
+min(data$Weight)
+max(data$Weight)
+
+mean(data$Height)
+mean(data$Weight)
+
+median(data$Height)
+median(data$Weight)
+```
+
+* * *
+
+Furthermore, I want to take a look and some categorical values. For instance, the metric of **family member record of obesity**. Below can be seen the proportions and its visualization.
+
+```{r family-record, echo = FALSE}
+prop.table(table(data$family_history_with_overweight))
+ggplot(data, aes(x = family_history_with_overweight)) + geom_bar(fill = "lightblue") + xlab("family member suffered or suffers from overweight")
+```
+
+Here, we see that most of the participants (more than 80 percent), has a record of obesity problems within their family members.
+
+Moreover, let's analyse the metric of **smokers**.
+
+```{r smokers, echo = FALSE}
+prop.table(table(data$SMOKE))
+ggplot(data, aes(x = SMOKE)) + geom_bar(fill = "lightblue") + xlab("Smoker or not")
+```
+
+Again, we can tell that almost 98% of participants does not smoke. Although this metric can be potentially used as a predictor of obesity disease, in our sample the proportion is so uneven that it can spoil the perception of analysis.
+
+* * *
+
+Now, let's focus on the **obesity levels**. Firstly, I will check all unique values.
+
+```{r,echo=FALSE}
+unique(data$NObeyesdad)
+```
+
+As expected, we have normal weight, insufficient weight, 2 overweight categories and 3 obesity level categories. Now, we will check it's distribution.
+
+```{r, echo=FALSE}
+ggplot(data, aes(x = NObeyesdad)) + geom_bar(fill = "lightblue") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+According to this plot, the most popular characteristic is Obesity_Type_I. 
+
+```{r most-popular, echo = FALSE}
+freq <- table(data$NObeyesdad)
+freq_sorted <- sort(freq, decreasing = TRUE)
+freq_sorted[1]
+```
+
+
+Nevertheless, the distribution can be called uniformed.
+
+* * *
+
+### Associative data analysis 
+
+When the individual analysis performed, we can check the associations between the different variables.
+
+To begin with, I will investigate the correlation between the **obesity level and gender**. 
+
+```{r obesity-gender, echo=FALSE}
+ggplot(data, aes(x = NObeyesdad, fill = Gender)) + geom_bar(position = "fill", width = 0.3) + xlab("Obesity type") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+As can be seen, there is a huge difference in proportion between males and females suffering from the disease. To support this, let's build the contingency table.
+
+```{r prop-table, echo=FALSE}
+prop.table(table(data$NObeyesdad, data$Gender), 1)
+```
+
+Thus, the majority of people from sample with Type 2 Obesity are men, while those with Obesity Type 3 are mostly women. This correlation is indeed worth further investigation and testing.
+
+ * * *
+ 
+Additionally, I want to test the correlation between the **obesity level and age**.
+ 
+```{r obesity-age, echo = FALSE}
+ggplot(data, aes(x = NObeyesdad, y = Age)) + geom_boxplot(fill = "lightblue") + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("Obesity type")
+```
+
+According to given data, we can tell that almost all the ages overlapping within their interquartile ranges. Nevertheless, the median values varies. I will build a table to compare the means across the obesity levels.
+
+```{r tapply-mean, echo = FALSE}
+tapply(data$Age, data$NObeyesdad, mean)
+```
+
+The same table for medians.
+
+```{r tapple-median, echo = FALSE}
+tapply(data$Age, data$NObeyesdad, median)
+```
+
+As a result, the difference between mean and median values of different obesity types are not crucially different. It makes sense to investigate the correlation between the age and obesity level on more general level, between the healthy people and those who have any type of overweight/obesity. 
+
+* * * 
+
+Additionally, let's check the correlation between the **obesity level and a smoking habit**. 
+
+
+```{r obesity-smokers, echo = FALSE}
+ggplot(data, aes(x = NObeyesdad, fill = SMOKE)) + geom_bar(position = "fill", width = 0.5) + xlab("Obesity type") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+As can be seen from a graph, because of majority of non-smokers in the sample, the data is not seemed to be correlated. These two metric does not make sense to compare. 
+
+* * * 
+
+Lastly, let's see the correlation between the **obesity level and a cases of the disease within the family members**. 
+
+
+```{r obesity-family, echo = FALSE}
+ggplot(data, aes(x = NObeyesdad, fill = family_history_with_overweight)) + geom_bar(position = "fill", width = 0.5) + xlab("Obesity type") + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + labs(fill = "Family member disease")
+```
+
+Again, as we can see the majority of participants did have a case of a disease within the family members. Considering the uniform destribution of the obesity types between the sample, this metric does not seem to have any impact on the result. Thus, we will not consider this correlation.
+
+* * *
+
+## Part 4: Inference
+
+Now, I want to perform a hypothesis testing on both research questions stated before in order to exclude the possibility of random coincidence among theses correlations.
+
+### First question 
+**Do men are more likely to suffer from being overweight than women?**
+
+We’ll be testing:
+
+$𝐻_{0}:$ The proportion of men suffering from overweight is equal to women. In other words, the gender of the participant has no effect on the diagnosis. 
+
+$p_{male} = p_{female}$ or $p_{male} - p_{female} = 0$
+
+$H_{A}:$ The proportion of men diagnosed with overweight or obese level is greater than women. In other words, men are more likely to have a suffer from a disease.
+
+$p_{male} > p_{female}$ or $p_{male} - p_{female} > 0$
+
+This is one-side hypothesis test (right-tailed). 
+
+In order to make the comparisons more efficient, we will compare two major groups: **healthy people** and those who **suffer from overweight/obesity**. Since we make predictions about the overweight, we will consider people with insufficient weight to be a part of a healthy group. To perform further operations, I created additional variable to state whether the participant healthy or diseased.
+
+```{r health, include=FALSE}
+unique(data$NObeyesdad)
+data$healty <- ifelse(data$NObeyesdad == "Normal_Weight" | data$NObeyesdad == "Insufficient_Weight", "healthy", "diseased")
+```
+
+Based on the collected data, we observed the following:
+
+```{r prop-vec, echo = FALSE}
+props <- prop.table(table(data$healty, data$Gender), 2)
+kable(prop.table(table(data$healty, data$Gender), 2))
+```
+
+
+If the Null hypothesis is true, we observed a difference in the proportions that would only happen rarely.
+
+If the Alternative hypothesis is true, what we observed was actually due to the tendency for men to have more chance to suffer from overweight that a women.
+
+In order to check it, we will perform the hypothesis testing.
+
+The best option is to use the theoretical test. However, certain conditions should be met.
+
+1. **Data independence** - data should be irrelevant to outside conditions. In this case, the data was no collected on a timely bases and the measures were not repeated. Thus, this condition is met.
+2. **The sample should be large enough.** We can check this condition by performing a series of checks:
+    - $$ n_{male}\hat{p}_{pool} \ge 10$$
+    - $$ n_{female}(1-\hat{p}_{pool}) \ge 10$$
+    - $$ n_{male}(1-\hat{p}_{pool}) \ge 10$$
+    - $$ n_{female}\hat{p}_{pool} \ge 10$$.
+
+```{r prop-check, echo = FALSE}
+p_male <- props["diseased", "Male"]
+n_male <- sum(data$Gender =="Male")
+
+p_female<- props["diseased", "Female"]
+n_female<- sum(data$Gender =="Female")
+
+suc_tot <- p_male * n_male + p_female * n_female
+n_tot <- n_male + n_female
+p_pool <- suc_tot / n_tot
+
+if ((n_male * p_pool >= 10) & (n_male * ( 1 - p_pool) >= 10) & (n_female * p_pool >= 10) & (n_female * (1 - p_pool) >= 10)){
+  print("Result: You can use the theoretical based hypothesis test.")
+  }
+```
+
+Thus, we will stick to theoretical approach since it is more precise.
+
+```{r inference-prop, echo = FALSE}
+inference(y = healty, 
+          x = Gender, 
+          data = data,
+          statistic = "proportion", 
+          type = "ht",
+          order = c("Male", "Female"),
+          null = 0,
+          alternative = "greater",
+          method="theoretical", 
+          success = "diseased")
+```
+
+Because 1e-04 is less than 0.05, we decide to reject the null hypothesis in favor of the alternative, claiming that men are more likely to have a overweight problems than women. That is, we conclude that it was not simply random variability which led to a higher proportion of men being ill. A p-value is significantly small, but the difference in proportions is not that dramatic, which means we should be somewhat careful in making strong claims. We should take the results as a indication that more work should be done on the claims.
+ 
+* * *
+
+### Second question 
+**Can the age make any assumption about an obesity level?**
+
+We’ll be testing:
+
+$𝐻_{0}:$ The average age between the groups of healthy people and those with obesity is the same. It is impossible to make any predictions based on the age of a patient.
+
+$\mu_{normalWeight} = \mu_{obesity}$
+
+$H_{A}:$ The average age between the groups of healthy people and those with obesity is different. There is a correlation between the age of a patient and the potential disease.
+
+$\mu_{normalWeight} != \mu_{obesity}$ or $\mu_{normalWeight} - \mu_{obesity} != 0$
+
+This is two-side hypothesis test. 
+
+Based on the collected data, we observed the following:
+
+```{r means-vec, echo = FALSE}
+means_vector <- tapply(data$Age, data$healty, mean)
+means_vector
+```
+
+The difference in means is:
+
+```{r diff-means, echo = FALSE}
+as.numeric(means_vector["diseased"]) - as.numeric(means_vector["healthy"])
+```
+
+If the null hypothesis of no difference between the two means was true, then the population difference $\mu_{normalWeight} - \mu_{obesity}$ is 0. That means that the difference between the average ages of these two groups is a coincidence. 
+
+If the Alternative hypothesis is true, there will be a dependency between the average age and the obesity condition.
+
+In order to check it, we will perform the hypothesis testing.
+
+The best option is to use the theoretical test. However, certain conditions should be met.
+
+1. Independence: The data are independent within and between the two groups, e.g., the data come from independent random samples or from a randomized experiment. Again, this condition is met.
+
+2. Normality or large samples: The data from each group should be approximately normally distributed or at least in each group there must be more than 30 observations.
+
+```{r sample-check, echo = FALSE}
+ggplot(data, aes(x=Age))+
+geom_histogram(fill = "lightblue", bins = 10)+
+facet_grid(healty ~ .)
+
+table (data$healty)
+```
+
+According to the results, nevertheless the values are not normally distributed, this condition is met because of big samples. 
+
+3. Outliers: No significant outliers in the two groups.
+
+```{r outliers-check, echo = FALSE}
+ggplot(data, aes(x=Age, y = healty))+
+geom_boxplot(fill = "lightblue")
+```
+
+According to the box plots, there are significant outliers in our data. Thus, the theoretical approach can not be used. Then, we stick to the simulation based approach.
+
+```{r inference-means, echo = FALSE}
+
+inference(y = Age,   #Numerical 
+          x = healty,    #binary categorical
+          data = data,
+          statistic = "mean", 
+          type ="ht",
+          null = 0,
+          alternative = "twosided",
+          method ="simulation")
+
+```
+
+The $p$-value is very small. In other words, there is a very small chance that we'd observe a difference of 4.8 in a hypothesized universe where there was truly no difference in ages. 
+
+
+This $p$-value is smaller than our pre-specified $\alpha$ significance level of 0.05. Thus, we are inclined to reject the null hypothesis $H_0: \mu_{normalWeight} = \mu_{obesity}$. We have the evidence needed in this sample of data to suggest that we should reject the hypothesis that there is no difference in mean age and obesity level. We, thus, can say that a difference exists in healthy and diseased people ages, on average, for our sample.
+
+* * *
+
+## Part 5: Conclusion
+
+In conclusion, as a result of this project we evaluated the data based on a survey within couple of South American countries about people's eating habits and biological characteristics and their overweight disease. After the corresponding analysis, we raised two research questions regarding the dependency of mean age and gender of a participants on the potential obesity problems. In process of evaluation, we found some dependencies and checked their validity by stating hypothesis based on the assumptions and performing the hypothesis testing in order to make sure the dependency is not random coincidence. As a result, we can state that male has more chances to suffer from over weighting, as well as the age can also be a factor to predict the obesity problems.
+
+Talking about the limitations, the data used is not ideally distributed. Firstly, because of origin of the data, it should be remarked that all the outcomes of the research are valid within only Mexico, Peru and Colombia. If the more broad data was used, the results could have been applied to broader application. Secondly, some variables of the data were purely distributed and did not showed the expected level of correlation. It can happen becasue of lack of the records. 
+
+Additionally, the report itself could have paid more attention to individual data investigation and analysis of every variable included in the data set. Thus, there is a chance to find more variables interconnected with the fact of obesity level. 
